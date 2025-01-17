@@ -1,0 +1,33 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "pr2pdf"
+description = "PR2PDF - make PDF document from GitHub PRs"
+authors = ["jiwoong-choi <jiw8ng.choi@gmail.com>"]
+maintainers = ["jiwoong-choi <jiw8ng.choi@gmail.com>"]
+license = "MIT"
+homepage = "https://github.com/jiwoong-choi/pr2pdf"
+repository = "https://github.com/jiwoong-choi/pr2pdf"
+keywords = ["transformers", "TensorRT", "torch.export"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+version = "0.0.1"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+bs4 = "0.0.2"
+markdown = "^3.7"
+pdfkit = "^1.0.0"
+requests = "^2.32.3"
+setuptools = "75.7.0"
+wheel = "0.45.1"
+
+[tool.poetry.scripts]
+pr2pdf = "pr2pdf.__main__:main"
+
+[tool.poetry.package.include]
+path = "src/pr2pdf"
