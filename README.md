@@ -32,6 +32,22 @@ including PR details, file changes, and reviews.
   ```
 - GitHub CLI (optional) - For CLI-based authentication
 
+## Environment Setup
+
+You can set up the development environment using conda or mamba:
+
+```bash
+# Using conda
+conda env create -f environment.yaml
+conda activate pr2pdf
+
+# Using mamba
+mamba env create -f environment.yaml
+mamba activate pr2pdf
+```
+
+This will create a new environment with all the required dependencies installed.
+
 ## Installation
 
 You can install PR2PDF using pip:
