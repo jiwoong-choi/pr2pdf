@@ -25,6 +25,10 @@ pdfkit = "^1.0.0"
 requests = "^2.32.3"
 setuptools = "75.7.0"
 wheel = "0.45.1"
+types-requests = "*"
+types-Markdown = "*"
+pydantic = "^2.6.1"
+typing-extensions = "^4.9.0"
 
 [tool.poetry.scripts]
 pr2pdf = "pr2pdf.__main__:main"
