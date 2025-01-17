@@ -75,21 +75,6 @@ Multiple PRs with custom output path:
 pr2pdf https://github.com/owner/repo/pull/123 https://github.com/owner/repo/pull/456 --output-path my_prs.pdf
 ```
 
-### Python API
-
-```python
-import pr2pdf
-
-# Using GitHub token
-pr2pdf.generate_pdf(
-    pr_urls=["https://github.com/owner/repo/pull/123"],
-    token="your_github_token"
-)
-
-# Using GitHub CLI auth (token will be retrieved automatically)
-pr2pdf.generate_pdf(["https://github.com/owner/repo/pull/123"])
-```
-
 ## Output Format
 
 The generated PDF includes:
