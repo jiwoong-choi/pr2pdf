@@ -31,11 +31,13 @@ def main() -> None:
         help="List of GitHub pull request URLs",
     )
     parser.add_argument(
+        "-t",
         "--token",
         default=os.environ.get("GHP_TOKEN"),
         help="GitHub Personal Access Token (optional if GHP_TOKEN env var is set, or will be redirected to GitHub CLI)",
     )
     parser.add_argument(
+        "-o",
         "--output-path",
         required=False,
         help="Path where the PDF should be saved (defaults to current date)",
