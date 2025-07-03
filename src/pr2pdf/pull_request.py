@@ -1,9 +1,13 @@
 import requests
+from markdown import markdown
 from pydantic import BaseModel
 from typing_extensions import Self
 
+from .commit import Commit
 from .file_diff import FileDiff
+from .github_user import GitHubUser
 from .pr_details import PRDetails
+from .time import Time
 
 
 class PullRequest(BaseModel):
@@ -12,6 +16,7 @@ class PullRequest(BaseModel):
     details: PRDetails
     files: list[FileDiff]
     reviewers: set[str]
+    commits: list[Commit]
 
     @staticmethod
     def parse_url(url: str) -> tuple[str, str]:
@@ -94,7 +99,32 @@ class PullRequest(BaseModel):
         reviews = reviews_response.json()
         reviewers = {review["user"]["login"] for review in reviews}
 
-        return cls(details=pr_details, files=files, reviewers=reviewers)
+        # Fetch commits
+        commits_url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/commits"
+        commits_response = requests.get(commits_url, headers=headers)
+        if commits_response.status_code != 200:
+            raise Exception(f"Failed to fetch PR commits: {commits_response.json()}")
+
+        commits_data = commits_response.json()
+        commits = [
+            Commit(
+                sha=commit["sha"],
+                message=commit["commit"]["message"],
+                author=GitHubUser(
+                    login=commit["author"]["login"],
+                    html_url=commit["author"]["html_url"],
+                ),
+                date=Time(commit["commit"]["author"]["date"]),
+            )
+            for commit in commits_data
+        ]
+
+        return cls(
+            details=pr_details,
+            files=files,
+            reviewers=reviewers,
+            commits=commits,
+        )
 
     def to_html(self) -> str:
         """Generate HTML content for the pull request.
@@ -105,11 +135,55 @@ class PullRequest(BaseModel):
                 - PR description in Markdown
                 - File changes with syntax highlighting
         """
-        from markdown import markdown
+        markdown_styles = """
+            <style>
+                .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6 {
+                    border-bottom: 1px solid #eaecef;
+                    padding-bottom: .3em;
+                }
+                .markdown-body ul {
+                    list-style-type: disc;
+                }
+                .markdown-body ol {
+                    list-style-type: decimal;
+                }
+                .markdown-body ul, .markdown-body ol {
+                    padding-left: 2em;
+                }
+                .markdown-body blockquote {
+                    border-left: .25em solid #dfe2e5;
+                    color: #6a737d;
+                    padding: 0 1em;
+                    margin-left: 0;
+                }
+                .markdown-body pre {
+                    background-color: #f6f8fa;
+                    border-radius: 3px;
+                    font-size: 85%;
+                    line-height: 1.45;
+                    overflow: auto;
+                    padding: 16px;
+                }
+                .markdown-body code {
+                    background-color: rgba(27,31,35,.05);
+                    border-radius: 3px;
+                    font-size: 85%;
+                    margin: 0;
+                    padding: .2em .4em;
+                }
+                .markdown-body pre > code {
+                    background-color: transparent;
+                    font-size: 100%;
+                    margin: 0;
+                    padding: 0;
+                    border: 0;
+                }
+            </style>
+        """
 
         html_content = f"<h1>{self.details.title}</h1>"
 
-        # Author, Created At, and Reviewers in a single box with light yellow background
+        # Author, Created At, and Reviewers in a single box
         reviewers_links = (
             ", ".join(
                 [
@@ -121,7 +195,7 @@ class PullRequest(BaseModel):
             else "No reviewers"
         )
         html_content += (
-            f"<div style='background-color: #fff8dc; padding: 15px; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 20px;'>"
+            f"<div style='background-color: #f6f8fa; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 20px;'>"
             f"<p><strong>Author:</strong> <a href='{self.details.author_url}'>{self.details.author_login}</a></p>"
             f"<p><strong>Created At (KST):</strong> {self.details.created_at_kst}</p>"
             f"<p><strong>Reviewers:</strong> {reviewers_links}</p>"
@@ -129,14 +203,37 @@ class PullRequest(BaseModel):
         )
 
         # Render Markdown in the "Overview" section
-        if self.details.body:
-            body_html = markdown(self.details.body)
-            html_content += "<h2>Overview</h2>"
-            html_content += "<hr style='border: 1px solid #ddd; margin: 10px 0;'>"
-            html_content += (
-                f"<div style='background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 5px;'>"
-                f"{body_html}</div>"
-            )
+        body_content = self.details.body
+        if not body_content:
+            commit_messages = []
+            for commit in self.commits:
+                lines = commit.message.strip().split('\n')
+                subject = lines[0]
+                body_lines = lines[1:]
+
+                # Main bullet point for the subject
+                formatted_message = f"- {subject}"
+
+                # Indented code block for the body
+                if body_lines:
+                    # Filter out empty lines and join them
+                    body = '\n'.join(filter(str.strip, body_lines))
+                    if body:
+                        # Format the body as an indented code block
+                        indented_body = '\n'.join([f"    {line}" for line in body.split('\n')])
+                        formatted_message += f"\n\n{indented_body}\n"
+
+                commit_messages.append(formatted_message)
+
+            body_content = f"""### Commits\n\n{"\n".join(commit_messages)}"""
+
+        body_html = markdown(body_content, extensions=["extra"])
+        html_content += "<h2>Overview</h2>"
+        html_content += "<hr style='border: 1px solid #ddd; margin: 10px 0;'>"
+        html_content += (
+            f"<div class='markdown-body' style='background-color: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 20px;'>"
+            f"{markdown_styles}{body_html}</div>"
+        )
 
         html_content += "<h2>Files Changed</h2>"
         html_content += "<hr style='border: 1px solid #ddd; margin: 10px 0;'>"
