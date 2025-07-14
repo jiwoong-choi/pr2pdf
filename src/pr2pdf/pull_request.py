@@ -84,11 +84,22 @@ class PullRequest(BaseModel):
         pr_details = PRDetails.model_validate(pr_response.json())
 
         # Fetch files from the "Files changed" tab
-        files_response = requests.get(pr_details.files_url, headers=headers)
-        if files_response.status_code != 200:
-            raise Exception(f"Failed to fetch PR files: {files_response.json()}")
-
-        files = [FileDiff.model_validate(file) for file in files_response.json()]
+        files_url = f"{base_url}/files"
+        files = []
+        page = 1
+        while True:
+            files_response = requests.get(
+                files_url, headers=headers, params={"per_page": 100, "page": page}
+            )
+            if files_response.status_code != 200:
+                raise Exception(f"Failed to fetch PR files: {files_response.json()}")
+            
+            page_files = files_response.json()
+            if not page_files:
+                break
+            
+            files.extend([FileDiff.model_validate(file) for file in page_files])
+            page += 1
 
         # Fetch reviewers
         reviews_url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/reviews"
