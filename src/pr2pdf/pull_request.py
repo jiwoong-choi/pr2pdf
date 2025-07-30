@@ -210,7 +210,6 @@ class PullRequest(BaseModel):
         html_content += (
             f"<div style='background-color: #f6f8fa; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 20px;'>"
             f"<p><strong>Author:</strong> <a href='{self.details.author_url}'>{self.details.author_login}</a></p>"
-            f"<p><strong>Created At (KST):</strong> {self.details.created_at_kst}</p>"
             f"<p><strong>Reviewers:</strong> {reviewers_links}</p>"
             f"</div>"
         )
@@ -243,7 +242,7 @@ class PullRequest(BaseModel):
             subject = lines[0]
             body_lines = lines[1:]
 
-            commit_item_html = f"<li>{subject}"
+            commit_item_html = f"<li>{subject} - <small>({commit.date.to_kst_str()})</small>"
             if body_lines:
                 body = '\n'.join(filter(str.strip, body_lines))
                 if body:

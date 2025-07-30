@@ -3,9 +3,6 @@ from typing import Any
 from pydantic import BaseModel, Field, model_validator
 
 from .github_user import GitHubUser
-from .time import convert_to_kst
-
-
 class PRDetails(BaseModel):
     """Class representing GitHub Pull Request details."""
 
@@ -21,11 +18,6 @@ class PRDetails(BaseModel):
         if isinstance(values.get("_links"), dict):
             values["_links"] = values["_links"]["self"]["href"]
         return values
-
-    @property
-    def created_at_kst(self) -> str:
-        """Get the created_at time in KST format."""
-        return convert_to_kst(self.created_at)
 
     @property
     def author_login(self) -> str:
