@@ -154,9 +154,11 @@ class PullRequest(BaseModel):
                 }
                 .markdown-body ul {
                     list-style-type: disc;
+                    list-style-position: inside;
                 }
                 .markdown-body ol {
                     list-style-type: decimal;
+                    list-style-position: inside;
                 }
                 .markdown-body ul, .markdown-body ol {
                     padding-left: 2em;
@@ -214,31 +216,44 @@ class PullRequest(BaseModel):
         )
 
         # Render Markdown in the "Overview" section
-        body_content = self.details.body
-        if not body_content:
-            commit_messages = []
-            for commit in self.commits:
-                lines = commit.message.strip().split('\n')
-                subject = lines[0]
-                body_lines = lines[1:]
+        pr_description_html = ""
+        if self.details.body:
+            body_parts = self.details.body.split("Key Changes:")
+            pr_description_html = markdown(body_parts[0], extensions=["extra"])
 
-                # Main bullet point for the subject
-                formatted_message = f"- {subject}"
+            if len(body_parts) > 1:
+                key_changes_content = body_parts[1].strip()
+                key_changes_lines = key_changes_content.split('\n')
+                key_changes_html_list = []
+                for line in key_changes_lines:
+                    stripped_line = line.strip()
+                    if stripped_line.startswith('*'):
+                        key_changes_html_list.append(f"<li>{stripped_line[1:].strip()}</li>")
+                    else:
+                        key_changes_html_list.append(f"<p>{stripped_line}</p>") # Handle non-list lines
+                
+                if key_changes_html_list:
+                    pr_description_html += "<h3>Key Changes:</h3><ul>" + "".join(key_changes_html_list) + "</ul>"
+                else:
+                    pr_description_html += f"<h3>Key Changes:</h3><p>{key_changes_content}</p>"
+        
+        commit_html_list = []
+        for commit in self.commits:
+            lines = commit.message.strip().split('\n')
+            subject = lines[0]
+            body_lines = lines[1:]
 
-                # Indented code block for the body
-                if body_lines:
-                    # Filter out empty lines and join them
-                    body = '\n'.join(filter(str.strip, body_lines))
-                    if body:
-                        # Format the body as an indented code block
-                        indented_body = '\n'.join([f"    {line}" for line in body.split('\n')])
-                        formatted_message += f"\n\n{indented_body}\n"
+            commit_item_html = f"<li>{subject}"
+            if body_lines:
+                body = '\n'.join(filter(str.strip, body_lines))
+                if body:
+                    commit_item_html += f"<pre style=\"margin-left: 2em;\">{body}</pre>"
+            commit_item_html += "</li>"
+            commit_html_list.append(commit_item_html)
 
-                commit_messages.append(formatted_message)
+        commit_messages_html = f"<h3>Commits</h3><ul>{''.join(commit_html_list)}</ul>"
 
-            body_content = f"""### Commits\n\n{"\n".join(commit_messages)}"""
-
-        body_html = markdown(body_content, extensions=["extra"])
+        body_html = pr_description_html + commit_messages_html
         html_content += "<h2>Overview</h2>"
         html_content += "<hr style='border: 1px solid #ddd; margin: 10px 0;'>"
         html_content += (
