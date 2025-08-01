@@ -242,7 +242,7 @@ class PullRequest(BaseModel):
             subject = lines[0]
             body_lines = lines[1:]
 
-            commit_item_html = f"<li>{subject} - <small>({commit.date.to_kst_str()})</small>"
+            commit_item_html = f"<li>{subject} - <small><a href='{commit.author.html_url}'>{commit.author.login}</a> ({commit.date.to_kst_str()})</small>"
             if body_lines:
                 body = '\n'.join(filter(str.strip, body_lines))
                 if body:
